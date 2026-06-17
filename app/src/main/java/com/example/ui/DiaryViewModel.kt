@@ -2,6 +2,7 @@ package com.example.ui
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.runtime.getValue
@@ -11,6 +12,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.api.GeminiManager
 import com.example.data.*
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -337,6 +339,9 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Load and Decrypt Entries specific to Decoy or Real Vault ---
     fun loadEntries() {
+        if (isFakeVaultActive && isUnlocked && masterPassword.isNotEmpty()) {
+            seedDecoyEntriesIfNeeded()
+        }
         viewModelScope.launch {
             repository.getEntriesFlow(isDecoy = isFakeVaultActive).collect { rawEntries ->
                 if (isUnlocked && masterPassword.isNotEmpty()) {
@@ -344,6 +349,96 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    private fun seedDecoyEntriesIfNeeded() {
+        viewModelScope.launch {
+            val alreadySeeded = sharedPrefs.getBoolean("decoy_seeded_status", false)
+            if (!alreadySeeded) {
+                val mockNotes = listOf(
+                    Triple("💡 Lịch trình tập luyện & Yoga hàng tuần", "Thứ 2: Chạy bộ rèn sức bền + Thiền định 15 phút.\nThứ 4: Squat & Cardio nhẹ nhàng tại chỗ.\nThứ 6: Kéo giãn cơ vai gáy, hít thở sâu phục hồi.\nThứ 7 & CN: Nghỉ ngơi tích cực, đi dạo công viên hít thở khí trời lành mạnh.", "Bình thản 🍃"),
+                    Triple("🛒 Danh sách mua sắm thực phẩm lành mạnh", "- Rau chân vịt, súp lơ xanh, bơ sáp thơm ngon\n- Ức gà tươi phi lê, cá hồi giàu Omega-3\n- Trứng gà ta hữu cơ, sữa chua không đường\n- Hạt hạnh nhân, hạt chia uống nước thanh lọc cơ thể.", "Vui vẻ 😊"),
+                    Triple("📝 Mục tiêu rèn luyện thói quen tự học", "Mỗi tối từ 21h-22h:\n- Đọc 10 trang sách Kỹ năng mềm hoặc Phát triển bản thân.\n- Luyện nghe Tiếng Anh giao tiếp qua Podcast chất lượng.\n- Viết nhật ký ngắn tổng kết bài học quý giá rút ra trong ngày.", "Năng lượng ⚡")
+                )
+
+                mockNotes.forEach { (title, content, mood) ->
+                    repository.saveEntry(
+                        id = 0,
+                        title = title,
+                        content = content,
+                        mood = mood,
+                        imageBytes = null,
+                        dbPassword = masterPassword,
+                        isDecoy = true,
+                        context = getApplication()
+                    )
+                }
+                sharedPrefs.edit().putBoolean("decoy_seeded_status", true).apply()
+                addSyncLog("🎭 Đã tự động tạo các bản ghi ngụy trang thực tế thành công để tạo cơ chế plausible deniability tối ưu.")
+            }
+        }
+    }
+
+    fun exportLocalEncryptedBackupFile(context: Context) {
+        viewModelScope.launch {
+            try {
+                addSyncLog("📦 Tiến trình xuất tệp phòng ngừa thảm họa cục bộ đang bắt đầu...")
+                val encryptedBackupDoc = repository.exportBackup(masterPassword, context)
+                
+                val tempFile = File(context.cacheDir, "secured_diary_backup.backup")
+                tempFile.writeText(encryptedBackupDoc, Charsets.UTF_8)
+                
+                val fileUri = androidx.core.content.FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    tempFile
+                )
+                
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/octet-stream"
+                    putExtra(Intent.EXTRA_STREAM, fileUri)
+                    putExtra(Intent.EXTRA_SUBJECT, "Secure Diary Backup")
+                    putExtra(Intent.EXTRA_TEXT, "Tệp sao lưu mã hóa AES-256 của Nhật Ký Bảo Mật. Không chia sẻ mật mã giải mã!")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                
+                val chooser = Intent.createChooser(intent, "Xuất tập tin sao lưu mã hóa")
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(chooser)
+                addSyncLog("✅ Đã xuất tệp tin sao lưu bảo mật thành công! Bạn có thể lưu vào Thẻ nhớ, Google Drive hoặc USB.")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                addSyncLog("⚠️ Thất bại khi ghi tập tin sao lưu bảo mật: ${e.message}")
+            }
+        }
+    }
+
+    fun importLocalEncryptedBackupFile(encryptedBackupString: String, context: Context): Boolean {
+        if (isSyncing) return false
+        if (encryptedBackupString.trim().isEmpty()) {
+            addSyncLog("⚠️ Dữ liệu tệp sao lưu rỗng.")
+            return false
+        }
+        var success = false
+        viewModelScope.launch {
+            try {
+                isSyncing = true
+                addSyncLog("📥 Đang nạp tệp sao lưu cục bộ để giải mã...")
+                success = repository.importBackup(encryptedBackupString.trim(), masterPassword, context)
+                if (success) {
+                    addSyncLog("🎉 Khôi phục dữ liệu từ tệp cục bộ thành công! Toàn bộ lịch sử nhật ký đã khớp phiên.")
+                    loadEntries()
+                } else {
+                    addSyncLog("❌ Thất bại: Mật mã mở khóa hiện tại không khớp để mở bọc dữ liệu tệp sao lưu này!")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                addSyncLog("❌ Lỗi cấu trúc tệp sao lưu: ${e.message}")
+            } finally {
+                isSyncing = false
+            }
+        }
+        return success
     }
 
     private fun decryptAndExposeEntries(rawEntries: List<DiaryEntry>) {

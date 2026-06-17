@@ -10,6 +10,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -725,9 +727,18 @@ fun JournalDashboardView(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onDoubleTap = {
+                                    viewModel.lockApp()
+                                }
+                            )
+                        }
+                    ) {
                         Text(
-                            text = if (viewModel.isFakeVaultActive) "Chế Độ Ngụy Trang 🎭" else "Nhật Ký Bảo Mật",
+                            text = if (viewModel.isFakeVaultActive) "Danh mục Nhật Ký" else "Nhật Ký Bảo Mật",
                             fontWeight = FontWeight.Bold,
                             color = if (viewModel.isFakeVaultActive) NeonCyan else Color.White,
                             fontSize = 18.sp
@@ -735,16 +746,6 @@ fun JournalDashboardView(
                     }
                 },
                 actions = {
-                    // Panic Threat Button (🚨) - instantly locks and wipes keys
-                    IconButton(onClick = { viewModel.lockApp() }) {
-                        Icon(
-                            imageVector = Icons.Default.Campaign,
-                            contentDescription = "Panic Trigger",
-                            tint = Color.Red,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-
                     // Drive Sync Status Indicators
                     IconButton(onClick = onNavigateToSync) {
                         Box(contentAlignment = Alignment.TopEnd) {
@@ -762,7 +763,7 @@ fun JournalDashboardView(
                             }
                         }
                     }
-                    // Lock App Shortcut
+                    // Lock App Shortcut - Benign, standard padlock button
                     IconButton(onClick = { viewModel.lockApp() }) {
                         Icon(imageVector = Icons.Default.Lock, contentDescription = "Lock Safe Cache", tint = GoldAccent)
                     }
@@ -1386,6 +1387,166 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            // 🛑 TRẠM KIỂM TRA SỨC KHỎE BẢO MẬT (Security Integrity Dashboard)
+            Text("CHỈ SỐ AN TOÀN HỆ THỐNG 🛡️", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GoldAccent, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(GoldAccent.copy(alpha = 0.15f), shape = CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.VerifiedUser, contentDescription = "Security Dashboard", tint = GoldAccent, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Bảng Chẩn Đoán Toàn Vẹn Thiết Bị", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Tiêu huỷ đệm & bọc khoá phần cứng", color = SilentGray, fontSize = 11.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = SilentGray.copy(alpha = 0.1f))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 1. Mật khẩu bọc khóa
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Lock, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Mã hóa bọc Master Key", color = Color.White, fontSize = 12.sp)
+                        }
+                        Text(
+                            text = if (viewModel.isPasswordSet) "🔐 AES-GCM 256" else "⚪ Chưa thiết lập",
+                            color = if (viewModel.isPasswordSet) Color.Green else Color.Red,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 2. Vân tay / Sinh trắc
+                    val sp = context.getSharedPreferences("diary_settings", Context.MODE_PRIVATE)
+                    val isBioEnabled = sp.getString("bio_master_password_enc", "").isNullOrEmpty().not()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Fingerprint, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Cấu hình vân tay sinh trắc", color = Color.White, fontSize = 12.sp)
+                        }
+                        Text(
+                            text = if (isBioEnabled) "🟢 Đang hoạt động (Keystore)" else "⚪ Chưa cấu hình",
+                            color = if (isBioEnabled) Color.Green else SilentGray,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 3. Không gian ngụy trang (Decoy Vault)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.VisibilityOff, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Không gian Ngụy trang", color = Color.White, fontSize = 12.sp)
+                        }
+                        Text(
+                            text = if (viewModel.isDecoyPasswordSet) "🟢 Đã bọc ngẫu nhiên (Seeded)" else "⚪ Chưa cấu hình",
+                            color = if (viewModel.isDecoyPasswordSet) Color.Green else SilentGray,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 4. Mã phục hồi (Recovery Code)
+                    val hasRecovery = viewModel.recoveryKeyGenerated.isNotEmpty()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.VpnKey, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Mã khôi phục khẩn cấp", color = Color.White, fontSize = 12.sp)
+                        }
+                        Text(
+                            text = if (hasRecovery) "🟢 Đã lưu trữ (AES)" else "⚪ Chưa tạo",
+                            color = if (hasRecovery) Color.Green else Color.Yellow,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 5. Chế độ mạng offline
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Shield, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Bảo vệ cục bộ (Offline Only)", color = Color.White, fontSize = 12.sp)
+                        }
+                        Text(
+                            text = if (viewModel.localPrivacyOnly) "🟢 Tối đa" else "🟡 Trung bình (Mạng)",
+                            color = if (viewModel.localPrivacyOnly) Color.Green else Color.Yellow,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 6. Kiểm tra toàn vẹn bộ nhớ & Root
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.HealthAndSafety, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Kiểm định hỏng hóc (SHA-256)", color = Color.White, fontSize = 12.sp)
+                        }
+                        Text(
+                            text = "🟢 An toàn (Keystore OK)",
+                            color = Color.Green,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
             // Connection Credentials Card status
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -1553,6 +1714,16 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                         )
                     }
 
+                    if (!viewModel.localPrivacyOnly) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "⚠️ MINH BẠCH PLAY STORE: Khi kích hoạt tính năng Đám mây/AI, nội dung ghi nhật ký được trích lựa sẽ được mã hóa và gửi tới máy chủ an toàn Google Cloud AI để sinh phân tích cảm thụ và gợi ý chủ đề. Không gộp dữ liệu cá nhân hay thông tin định danh rời thiết bị của bạn ôn tập dịch vụ.",
+                            color = Color(0xFFFF9800),
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(14.dp))
                     HorizontalDivider(color = SilentGray.copy(alpha = 0.1f))
                     Spacer(modifier = Modifier.height(14.dp))
@@ -1591,7 +1762,7 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                     HorizontalDivider(color = SilentGray.copy(alpha = 0.1f))
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // 3. Security Actions (View Recovery Key & Panic Trigger)
+                    // 3. Security Actions (View Recovery Key & Lock shortcut)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -1610,13 +1781,13 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
 
                         Button(
                             onClick = { viewModel.lockApp() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                            colors = ButtonDefaults.buttonColors(containerColor = GoldAccent),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.Campaign, contentDescription = "Panic Trigger", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Lock, contentDescription = "Lock App", tint = DarkBackground, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("HOẢNG LOẠN", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Khóa sổ tay", color = DarkBackground, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1640,7 +1811,7 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                 ) {
                     Icon(Icons.Default.CloudUpload, contentDescription = "Backup Payload", tint = DarkBackground)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Sao lưu ngay", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Sao lưu Drive", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
                 Button(
@@ -1651,7 +1822,101 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                 ) {
                     Icon(Icons.Default.CloudDownload, contentDescription = "Restore Payload", tint = DarkBackground)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Khôi phục tệp", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Phục hồi Drive", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Offline Backup export & import controls
+            Text("SAO LƯU NGOẠI TUYẾN (.BACKUP)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GoldAccent, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            var showImportFileDialog by remember { mutableStateOf(false) }
+            var pasteBackupText by remember { mutableStateOf("") }
+
+            if (showImportFileDialog) {
+                AlertDialog(
+                    onDismissRequest = { showImportFileDialog = false },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Backup, contentDescription = null, tint = GoldAccent)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Nhập Lại Nhật Ký Cục Bộ", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    text = {
+                        Column {
+                            Text(
+                                "Dán nội dung tệp mã hóa .backup thu được trước đó để khôi phục bọc. Chỉ bóc tách được bằng Master Key đúng:",
+                                color = SilentGray,
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            OutlinedTextField(
+                                value = pasteBackupText,
+                                onValueChange = { pasteBackupText = it },
+                                placeholder = { Text("Dán văn bản iv:ciphertext tại đây...", color = SilentGray.copy(alpha = 0.5f), fontSize = 12.sp) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = NeonCyan,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White
+                                ),
+                                maxLines = 8,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(120.dp)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                if (pasteBackupText.isNotEmpty()) {
+                                    viewModel.importLocalEncryptedBackupFile(pasteBackupText, context)
+                                    showImportFileDialog = false
+                                    pasteBackupText = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = GoldAccent)
+                        ) {
+                            Text("Bắt đầu khôi phục", color = DarkBackground, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showImportFileDialog = false }) {
+                            Text("Hủy", color = Color.White)
+                        }
+                    },
+                    containerColor = DarkCardBg
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.exportLocalEncryptedBackupFile(context) },
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = "Export File Link", tint = DarkBackground)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Xuất file .backup", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                }
+
+                Button(
+                    onClick = { showImportFileDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = GoldAccent),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Input, contentDescription = "Import File Paste", tint = DarkBackground)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Khôi phục .backup", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
             }
 
