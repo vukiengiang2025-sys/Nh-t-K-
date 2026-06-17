@@ -1,0 +1,6 @@
+{
+  "name": "Nhật Ký Bảo Mật",
+  "description": "Ứng dụng nhật ký cá nhân mã hóa bảo mật bằng mật khẩu riêng, hỗ trợ sao lưu và đồng bộ thời gian thực với Google Drive và trợ lý AI Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
