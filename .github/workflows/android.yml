@@ -31,6 +31,15 @@ jobs:
           echo "GEMINI_API_KEY=dummy_value" > .env
         fi
 
+    - name: Decode Keystore
+      run: |
+        if [ -f debug.keystore.base64 ]; then
+          base64 --decode debug.keystore.base64 > debug.keystore
+        else
+          echo "No base64 keystore found, generating one"
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        fi
+
     - name: Make Gradle Wrapper Executable
       # Note: In this project workspace, gradle is used directly without gradlew.
       # However, when exporting to GitHub, a standard wrapper is required.
