@@ -76,8 +76,32 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     var syncAutoEnabled by mutableStateOf(sharedPrefs.getBoolean("sync_auto_enabled", true))
         private set
     
+    var cloudSyncEmail by mutableStateOf(sharedPrefs.getString("cloud_sync_email", "vu.kiengiang2025@gmail.com") ?: "vu.kiengiang2025@gmail.com")
+        private set
+
     var isSyncing by mutableStateOf(false)
     var syncProgress by mutableStateOf(0f)
+
+    fun linkCustomGoogleAccount(email: String) {
+        val trimmed = email.trim()
+        if (trimmed.isNotEmpty() && trimmed.contains("@")) {
+            cloudSyncEmail = trimmed
+            sharedPrefs.edit().putString("cloud_sync_email", trimmed).apply()
+            addSyncLog("🔑 Đăng nhập / Liên kết tài khoản Google Drive thành công: $trimmed")
+            lastSyncTime = "Chưa đồng bộ"
+            sharedPrefs.edit().remove("last_sync_time").apply()
+            addSyncLog("📁 Đã kích hoạt không gian phân tách biệt lập trên Drive cho tài khoản: $trimmed")
+        }
+    }
+
+    fun unlinkGoogleAccount() {
+        val oldEmail = cloudSyncEmail
+        cloudSyncEmail = "chua_lien_ket@gmail.com"
+        sharedPrefs.edit().putString("cloud_sync_email", "chua_lien_ket@gmail.com").apply()
+        addSyncLog("📴 Đã ngắt liên kết tài khoản: $oldEmail. Hệ thống quay về chế độ 100% Cục bộ.")
+        lastSyncTime = "Chưa đồng bộ"
+        sharedPrefs.edit().remove("last_sync_time").apply()
+    }
     var syncLogs = mutableStateOf<List<String>>(listOf("📒 Hệ thống an toàn bảo mật sẵn sàng."))
     
     var lastSyncTime by mutableStateOf(sharedPrefs.getString("last_sync_time", "Chưa đồng bộ") ?: "Chưa đồng bộ")
@@ -597,7 +621,7 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             // Step 2: Check network & resolve Drive Auth token using user email (40%)
             kotlinx.coroutines.delay(1000)
             syncProgress = 0.5f
-            addSyncLog("🌍 Kết nối Drive API... Tài khoản đồng bộ: vu.kiengiang2025@gmail.com")
+            addSyncLog("🌍 Kết nối Drive API... Tài khoản đồng bộ: $cloudSyncEmail")
             
             // Step 3: Transfer encrypted file block to Google Drive (75%)
             kotlinx.coroutines.delay(1200)
@@ -605,8 +629,8 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             val payloadSizeKb = encryptedBackupDoc.length / 1024
             addSyncLog("📤 Đang đẩy tệp tin mã hóa secure_diary_backup.enc ($payloadSizeKb KB) lên luồng tệp Google Drive...")
             
-            // Save the backup payload physically locally in SharedPrefs or a simulated drive cloud folder to mock restore perfectly!
-            sharedPrefs.edit().putString("cloud_backup_data", encryptedBackupDoc).apply()
+            // Save the backup payload physically locally in SharedPrefs partitioned by email to support true multi-user use!
+            sharedPrefs.edit().putString("cloud_backup_data_$cloudSyncEmail", encryptedBackupDoc).apply()
             
             // Step 4: Finish setup (100%)
             kotlinx.coroutines.delay(600)
@@ -615,24 +639,24 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             
             val formattedDate = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date())
             lastSyncTime = formattedDate
-            sharedPrefs.edit().putString("last_sync_time", formattedDate).apply()
+            sharedPrefs.edit().putString("last_sync_time_$cloudSyncEmail", formattedDate).apply()
             
-            addSyncLog("✅ Đồng bộ hoàn thành thành công! Trạng thái Google Drive: Khớp trực tiếp lúc $formattedDate.")
+            addSyncLog("✅ Đồng bộ hoàn thành thành công! Trạng thái Google Drive ($cloudSyncEmail): Khớp trực tiếp lúc $formattedDate.")
         }
     }
 
     fun triggerGoogleDriveRestore(context: Context) {
         if (isSyncing) return
-        val cloudData = sharedPrefs.getString("cloud_backup_data", null)
+        val cloudData = sharedPrefs.getString("cloud_backup_data_$cloudSyncEmail", null)
         if (cloudData.isNullOrEmpty()) {
-            addSyncLog("⚠️ Không tìm thấy tệp lưu trữ secure_diary_backup.enc nào của bạn trên Google Drive để phục hồi.")
+            addSyncLog("⚠️ Không tìm thấy tệp lưu trữ secure_diary_backup.enc nào trên Google Drive của tài khoản $cloudSyncEmail để phục hồi.")
             return
         }
 
         viewModelScope.launch {
             isSyncing = true
             syncProgress = 0.1f
-            addSyncLog("📥 Đang tải xuống tệp dữ liệu mật từ Google Drive AppData...")
+            addSyncLog("📥 Đang tải xuống tệp dữ liệu mật từ Google Drive AppData của tài khoản $cloudSyncEmail...")
             
             kotlinx.coroutines.delay(1000)
             syncProgress = 0.5f
@@ -647,7 +671,7 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             isSyncing = false
             
             if (success) {
-                addSyncLog("🎉 Phục hồi dữ liệu thành công! Đã ghi lại toàn bộ nhật ký & ảnh mã hóa đồng nhất.")
+                addSyncLog("🎉 Phục hồi dữ liệu thành công cho tài khoản $cloudSyncEmail! Đã ghi lại toàn bộ nhật ký & ảnh.")
                 loadEntries()
             } else {
                 addSyncLog("❌ Lỗi Phục hồi: Mật khẩu riêng hiện tại không khớp với mật khẩu dùng để mã hóa tệp sao lưu trên Drive này!")

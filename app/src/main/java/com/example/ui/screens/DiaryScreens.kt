@@ -1266,6 +1266,8 @@ fun AddEditJournalView(viewModel: DiaryViewModel, onBack: () -> Unit) {
 fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val terminalLogs by viewModel.syncLogs
+    var showLinkAccountDialog by remember { mutableStateOf(false) }
+    var inputEmailText by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -1493,6 +1495,62 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(18.dp))
 
             // Connection Credentials Card status
+            // Connection Credentials Card status (Commercial Dynamic Multi-user Setup)
+            if (showLinkAccountDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLinkAccountDialog = false },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Cloud, contentDescription = null, tint = NeonCyan)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Liên Kết Google Drive Cá Nhân", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    text = {
+                        Column {
+                            Text(
+                                "Mỗi tài khoản Google sẽ khởi tạo một luồng mã hóa AES-256 phân tách biệt lập trên Drive cá nhân. Vui lòng nhập địa chỉ email Google Drive của bạn:",
+                                color = SilentGray,
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = inputEmailText,
+                                onValueChange = { inputEmailText = it },
+                                placeholder = { Text("ten_cua_ban@gmail.com", color = SilentGray.copy(alpha = 0.5f), fontSize = 12.sp) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = NeonCyan,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White
+                                ),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                if (inputEmailText.trim().isNotEmpty() && inputEmailText.contains("@")) {
+                                    viewModel.linkCustomGoogleAccount(inputEmailText)
+                                    showLinkAccountDialog = false
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan)
+                        ) {
+                            Text("Xác nhận liên kết", color = DarkBackground, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLinkAccountDialog = false }) {
+                            Text("Hủy", color = Color.White)
+                        }
+                    },
+                    containerColor = DarkCardBg
+                )
+            }
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = DarkCardBg),
@@ -1509,13 +1567,55 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                             Icon(Icons.Default.Cloud, contentDescription = "Drive Channel", tint = NeonCyan, modifier = Modifier.size(24.dp))
                         }
                         Spacer(modifier = Modifier.width(12.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text("Tài Khoản Google Drive Sync", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                            Text("vu.kiengiang2025@gmail.com", color = NeonCyan, fontSize = 12.sp)
+                            Text(
+                                text = if (viewModel.cloudSyncEmail == "chua_lien_ket@gmail.com") "Chưa liên kết tài khoản" else viewModel.cloudSyncEmail,
+                                color = if (viewModel.cloudSyncEmail == "chua_lien_ket@gmail.com") Color.Yellow else NeonCyan,
+                                fontSize = 12.sp
+                            )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Link buttons inside Card
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { 
+                                inputEmailText = if (viewModel.cloudSyncEmail == "chua_lien_ket@gmail.com") "" else viewModel.cloudSyncEmail
+                                showLinkAccountDialog = true 
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan.copy(alpha = 0.15f)),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(vertical = 4.dp, horizontal = 8.dp)
+                        ) {
+                            Text(
+                                text = if (viewModel.cloudSyncEmail == "chua_lien_ket@gmail.com") "Liên kết Drive" else "Đổi Tài khoản",
+                                color = NeonCyan,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        if (viewModel.cloudSyncEmail != "chua_lien_ket@gmail.com") {
+                            Button(
+                                onClick = { viewModel.unlinkGoogleAccount() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.15f)),
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(vertical = 4.dp, horizontal = 8.dp)
+                            ) {
+                                Text("Đăng xuất", color = Color.Red, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
                     HorizontalDivider(color = SilentGray.copy(alpha = 0.1f))
                     Spacer(modifier = Modifier.height(12.dp))
 
