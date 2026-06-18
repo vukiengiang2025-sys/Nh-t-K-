@@ -858,11 +858,6 @@ fun JournalDashboardView(
                             onDelete = { viewModel.deleteDiaryEntry(entry.id, context) }
                         )
                     }
-
-                    // Bottom AI Mood Analyzer Tool Card
-                    item {
-                        PremiumAiCompanionCard(viewModel)
-                    }
                 }
             }
         }
@@ -1074,69 +1069,7 @@ fun DiaryRowCard(
 }
 
 // --- Companion Sub-Card for AI Mood Analysis ---
-@Composable
-fun PremiumAiCompanionCard(viewModel: DiaryViewModel) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkCardBg.copy(alpha = 0.7f)),
-        shape = RoundedCornerShape(16.dp),
-        border = CardBorder(GoldAccent.copy(alpha = 0.2f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(GoldAccent.copy(alpha = 0.15f), shape = CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = "Gemini Companion", tint = GoldAccent, modifier = Modifier.size(18.dp))
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Trợ Lý Lắng Nghe Tâm Tư AI", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (viewModel.aiMoodAnalysisResult.isEmpty()) {
-                Text(
-                    text = "Trợ lý AI sẽ xâu chuỗi xúc cảm bí mật của các dòng nhật ký gần đây để gửi tới bạn một lời động viên nghệ thuật, thấu hiểu.",
-                    color = SilentGray,
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp
-                )
-            } else {
-                Text(
-                    text = viewModel.aiMoodAnalysisResult,
-                    color = CalmSoftPeach,
-                    fontSize = 13.sp,
-                    lineHeight = 19.sp,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            if (viewModel.aiLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally), color = GoldAccent)
-            } else {
-                Button(
-                    onClick = { viewModel.askDiaryMoodAnalysis() },
-                    colors = ButtonDefaults.buttonColors(containerColor = GoldAccent.copy(alpha = 0.15f)),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Hearing, contentDescription = "Listen", tint = GoldAccent, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Phân Tích Cảm Xúc Bí Mật", color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-            }
-        }
-    }
-}
+// AI features have been removed per user request
 
 // Custom Border Helper for Cards
 @Composable
@@ -1213,39 +1146,7 @@ fun AddEditJournalView(viewModel: DiaryViewModel, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // AI Journal Prompt Generator Section
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = DarkCardBg.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = "Prompt Helper", tint = GoldAccent, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = viewModel.aiSuggestedPrompt,
-                            color = CalmSoftPeach,
-                            fontSize = 11.sp,
-                            lineHeight = 16.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    if (viewModel.aiLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = GoldAccent, strokeWidth = 2.dp)
-                    } else {
-                        IconButton(onClick = { viewModel.askAiPrompt() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Ask Gemini", tint = GoldAccent, modifier = Modifier.size(20.dp))
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
+            // AI features have been removed per user request
 
             // Section 2: Editor Text Fields
             OutlinedTextField(
@@ -1387,6 +1288,50 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            // 💡 CHẾ ĐỘ VẬN HÀNH & ĐỒNG BỘ (Operational Classifications Card)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = "Operating Mode Info", tint = GoldAccent, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("CHẾ ĐỘ ĐỒNG BỘ ĐÁM MÂY", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Point 1: Test Mode Clarification
+                    Text("1. Đây là Bản Thử Nghiệm / Mô Phỏng:", color = NeonCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Dữ liệu nhật ký cục bộ của bạn được mã hoá bậc cao (AES-GCM 256) bọc bởi Android KeyStore và xuất thành tệp tin 'secure_diary_backup.enc'. Luồng truyền xuất/nhập đám mây hiện đang ở chế độ thử nghiệm nội bộ cố định để kiểm tra tính toàn vẹn.",
+                        color = SilentGray,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Point 2: Commercialization & Multi-user isolation
+                    Text("2. Khi Thương Mại Hóa (Production Release):", color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Vì đây là phần mềm nhật ký cá nhân bảo mật tuyệt đối, phiên bản thương mại hóa sẽ không sử dụng tài khoản thử nghiệm cấu hình cứng. Thay vào đó, tính năng liên kết Drive sẽ do ĐẦU CUỐI NGƯỜI DÙNG tự nhập và đăng nhập chính chủ. " +
+                        "Ứng dụng sẽ tích hợp luồng Google Sign-In / OAuth2 chính quy, cho phép từng người dùng tự động liên kết và cấp quyền lưu trữ tệp mã hóa trực tiếp vào không gian Google Drive AppData cá nhân của họ mà không qua bất kỳ máy chủ trung gian nào.",
+                        color = SilentGray,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             // 🛑 TRẠM KIỂM TRA SỨC KHỎE BẢO MẬT (Security Integrity Dashboard)
             Text("CHỈ SỐ AN TOÀN HỆ THỐNG 🛡️", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GoldAccent, letterSpacing = 1.sp)
             Spacer(modifier = Modifier.height(8.dp))
@@ -1515,8 +1460,8 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                             Text("Bảo vệ cục bộ (Offline Only)", color = Color.White, fontSize = 12.sp)
                         }
                         Text(
-                            text = if (viewModel.localPrivacyOnly) "🟢 Tối đa" else "🟡 Trung bình (Mạng)",
-                            color = if (viewModel.localPrivacyOnly) Color.Green else Color.Yellow,
+                            text = "🟢 Tuyệt đối (100% Offline)",
+                            color = Color.Green,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp
                         )
@@ -1688,47 +1633,7 @@ fun GoogleDriveSyncView(viewModel: DiaryViewModel, onBack: () -> Unit) {
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // 1. Quyền riêng tư offline 100% switch
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Quyền riêng tư tuyệt đối (Offline Only)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text(
-                                "Vô hiệu hóa toàn bộ cuộc gọi mạng tới Gemini AI Cloud. Ghi ghép 100% offline hoàn chỉnh.",
-                                color = SilentGray,
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Switch(
-                            checked = viewModel.localPrivacyOnly,
-                            onCheckedChange = { viewModel.toggleLocalPrivacyOnly(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = GoldAccent,
-                                checkedTrackColor = GoldAccent.copy(alpha = 0.3f)
-                            )
-                        )
-                    }
-
-                    if (!viewModel.localPrivacyOnly) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "⚠️ MINH BẠCH PLAY STORE: Khi kích hoạt tính năng Đám mây/AI, nội dung ghi nhật ký được trích lựa sẽ được mã hóa và gửi tới máy chủ an toàn Google Cloud AI để sinh phân tích cảm thụ và gợi ý chủ đề. Không gộp dữ liệu cá nhân hay thông tin định danh rời thiết bị của bạn ôn tập dịch vụ.",
-                            color = Color(0xFFFF9800),
-                            fontSize = 11.sp,
-                            lineHeight = 15.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                    HorizontalDivider(color = SilentGray.copy(alpha = 0.1f))
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // 2. Auto-lock timeout selections
+                    // 1. Auto-lock timeout selections
                     Text("Thời Gian Tự Động Khóa ⏱️", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(

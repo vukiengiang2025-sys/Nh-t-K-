@@ -1,6 +1,6 @@
 {
   "name": "Nhật Ký Bảo Mật",
-  "description": "Ứng dụng nhật ký cá nhân mã hóa bảo mật bằng mật khẩu riêng, hỗ trợ sao lưu và đồng bộ thời gian thực với Google Drive và trợ lý AI Gemini.",
+  "description": "Ứng dụng nhật ký cá nhân thiết kế tuyệt mật 100% Offline bọc bởi Android KeyStore và AES-256 mã hóa, hỗ trợ nén xuất sao lưu đồng bộ Google Drive.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

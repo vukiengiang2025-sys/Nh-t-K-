@@ -10,7 +10,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.api.GeminiManager
 import com.example.data.*
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -657,54 +656,15 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- Gemini AI Features ---
+    // AI companion features have been completely removed per user request.
     fun askAiPrompt() {
-        if (aiLoading) return
-        if (localPrivacyOnly) {
-            aiSuggestedPrompt = "🛡️ Chế độ Offline/Local Privacy đang bật. Hãy trút bầu tâm sự tự nhiên mà không cần gợi ý bên ngoài."
-            addSyncLog("🛡️ Cuộc gọi AI Prompt bị chặn: Thiết bị đang ở cấu hình bảo mật tối đa.")
-            return
-        }
-        viewModelScope.launch {
-            aiLoading = true
-            aiSuggestedPrompt = "Đang kết nối hệ thống AI Gemini 3.5 để phân tích..."
-            try {
-                val suggestion = GeminiManager.generateSuggestivePrompt(formMood)
-                aiSuggestedPrompt = suggestion
-                addSyncLog("💡 Trợ lý Sổ tay gợi ý chủ đề viết hôm nay thành công.")
-            } catch (e: Exception) {
-                aiSuggestedPrompt = "⚠️ Không thể tải gợi ý: ${e.localizedMessage}"
-            } finally {
-                aiLoading = false
-            }
-        }
+        aiSuggestedPrompt = "Chức năng Trợ lý AI đã được loại bỏ để tập trung hoàn toàn vào ghi chép an toàn ngoại tuyến."
+        addSyncLog("ℹ️ Yêu cầu gợi ý AI đã bị bỏ: Ứng dụng hoạt động 100% bảo mật cục bộ.")
     }
 
     fun askDiaryMoodAnalysis() {
-        if (aiLoading) return
-        if (localPrivacyOnly) {
-            aiMoodAnalysisResult = "🛡️ AI bị chặn do bạn đang chọn 'Quyền riêng tư Nội bộ Tuyệt đối'. Dữ liệu nhật ký của bạn 100% nằm yên trong thiết bị."
-            addSyncLog("🛡️ Cuộc gọi Phân tích Thấu hiểu bị chặn: Đã bảo vệ dữ liệu khỏi Cloud.")
-            return
-        }
-        val textArray = activeEntries.value.take(5).map { "${it.title}: ${it.content}" }
-        if (textArray.isEmpty()) {
-            aiMoodAnalysisResult = "Bạn chưa ghi dòng nhật ký nào để Trợ lý AI có thể lắng nghe. Hãy viết ít nhất một trang nhật ký nhé! 💕"
-            return
-        }
-        
-        viewModelScope.launch {
-            aiLoading = true
-            aiMoodAnalysisResult = "Trợ lý ảo đang lắng nghe dòng ký ức của bạn..."
-            try {
-                val reportResult = GeminiManager.generateMoodReport(textArray)
-                aiMoodAnalysisResult = reportResult
-                addSyncLog("🔮 Đã nhận báo cáo thấu hiểu cảm xúc từ Trợ lý Sổ tay.")
-            } catch (e: Exception) {
-                aiMoodAnalysisResult = "⚠️ Không thể phân tích cảm xúc: ${e.localizedMessage}"
-            } finally {
-                aiLoading = false
-            }
-        }
+        aiMoodAnalysisResult = "Chức năng Phân tích cảm xúc AI đã được loại bỏ theo cài đặt bảo mật."
+        addSyncLog("ℹ️ Yêu cầu phân tích AI đã bị bỏ: Đã tắt toàn bộ luồng đám mây AI.")
     }
 }
 
