@@ -629,8 +629,24 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             val payloadSizeKb = encryptedBackupDoc.length / 1024
             addSyncLog("📤 Đang đẩy tệp tin mã hóa secure_diary_backup.enc ($payloadSizeKb KB) lên luồng tệp Google Drive...")
             
-            // Save the backup payload physically locally in SharedPrefs partitioned by email to support true multi-user use!
+            // Save inside SharedPreferences for fast access
             sharedPrefs.edit().putString("cloud_backup_data_$cloudSyncEmail", encryptedBackupDoc).apply()
+            
+            // AND ALSO save to a public persistent file that survives app uninstall/install!
+            try {
+                val emailClean = cloudSyncEmail.replace("@", "_").replace(".", "_")
+                val persistentFile = File(
+                    android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
+                    ".drive_backup_sim_${emailClean}.enc"
+                )
+                persistentFile.writeText(encryptedBackupDoc, Charsets.UTF_8)
+                
+                // Fallback direct path
+                val fallbackFile = File("/sdcard/Download/.drive_backup_sim_${emailClean}.enc")
+                fallbackFile.writeText(encryptedBackupDoc, Charsets.UTF_8)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             
             // Step 4: Finish setup (100%)
             kotlinx.coroutines.delay(600)
@@ -647,7 +663,29 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
 
     fun triggerGoogleDriveRestore(context: Context) {
         if (isSyncing) return
-        val cloudData = sharedPrefs.getString("cloud_backup_data_$cloudSyncEmail", null)
+        var cloudData = sharedPrefs.getString("cloud_backup_data_$cloudSyncEmail", null)
+        
+        // If not found in SharedPrefs (due to uninstall & reinstall), try loading from persistent file!
+        if (cloudData.isNullOrEmpty()) {
+            try {
+                val emailClean = cloudSyncEmail.replace("@", "_").replace(".", "_")
+                val persistentFile = File(
+                    android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
+                    ".drive_backup_sim_${emailClean}.enc"
+                )
+                if (persistentFile.exists()) {
+                    cloudData = persistentFile.readText(Charsets.UTF_8)
+                } else {
+                    val fallbackFile = File("/sdcard/Download/.drive_backup_sim_${emailClean}.enc")
+                    if (fallbackFile.exists()) {
+                        cloudData = fallbackFile.readText(Charsets.UTF_8)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        
         if (cloudData.isNullOrEmpty()) {
             addSyncLog("⚠️ Không tìm thấy tệp lưu trữ secure_diary_backup.enc nào trên Google Drive của tài khoản $cloudSyncEmail để phục hồi.")
             return
@@ -664,7 +702,7 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             
             kotlinx.coroutines.delay(1000)
             syncProgress = 0.8f
-            val success = repository.importBackup(cloudData, masterPassword, context)
+            val success = repository.importBackup(cloudData!!, masterPassword, context)
             
             kotlinx.coroutines.delay(500)
             syncProgress = 1.0f
