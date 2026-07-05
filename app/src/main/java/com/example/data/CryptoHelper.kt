@@ -13,7 +13,7 @@ object CryptoHelper {
     private const val ALGORITHM = "AES/GCM/NoPadding"
     private const val TAG_LENGTH_BIT = 128
     private const val IV_LENGTH_BYTE = 12
-    private const val ITERATIONS = 1000
+    private const val ITERATIONS = 100000
     private const val KEY_LENGTH = 256
     
     private val SALT = byteArrayOf(
@@ -22,9 +22,9 @@ object CryptoHelper {
         0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x53, 0x61, 0x6c, 0x74
     )
 
-    private fun deriveKey(password: String): SecretKeySpec {
+    private fun deriveKey(password: String, iterationCount: Int = ITERATIONS): SecretKeySpec {
         val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-        val spec: KeySpec = PBEKeySpec(password.toCharArray(), SALT, ITERATIONS, KEY_LENGTH)
+        val spec: KeySpec = PBEKeySpec(password.toCharArray(), SALT, iterationCount, KEY_LENGTH)
         val tmp = factory.generateSecret(spec)
         return SecretKeySpec(tmp.encoded, "AES")
     }
@@ -52,7 +52,7 @@ object CryptoHelper {
     fun decrypt(cipherText: String, iv: String, password: String): String {
         if (cipherText.isEmpty() || iv.isEmpty()) return ""
         return try {
-            val key = deriveKey(password)
+            val key = deriveKey(password, ITERATIONS)
             val cipher = Cipher.getInstance(ALGORITHM)
             val ivBytes = Base64.decode(iv, Base64.NO_WRAP)
             val cipherTextBytes = Base64.decode(cipherText, Base64.NO_WRAP)
@@ -60,8 +60,19 @@ object CryptoHelper {
             val decryptedBytes = cipher.doFinal(cipherTextBytes)
             String(decryptedBytes, Charsets.UTF_8)
         } catch (e: Exception) {
-            e.printStackTrace()
-            "⚠️ Mật khẩu giải mã không chính xác hoặc dữ liệu bị lỗi"
+            // Silent legacy fallback for backwards compatibility with pre-existing notes
+            try {
+                val legacyKey = deriveKey(password, 1000)
+                val cipher = Cipher.getInstance(ALGORITHM)
+                val ivBytes = Base64.decode(iv, Base64.NO_WRAP)
+                val cipherTextBytes = Base64.decode(cipherText, Base64.NO_WRAP)
+                cipher.init(Cipher.DECRYPT_MODE, legacyKey, GCMParameterSpec(TAG_LENGTH_BIT, ivBytes))
+                val decryptedBytes = cipher.doFinal(cipherTextBytes)
+                String(decryptedBytes, Charsets.UTF_8)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                "⚠️ Mật khẩu giải mã không chính xác hoặc dữ liệu bị lỗi"
+            }
         }
     }
 
@@ -76,10 +87,22 @@ object CryptoHelper {
     }
 
     fun decryptBytes(cipherBytes: ByteArray, iv: ByteArray, password: String): ByteArray {
-        val key = deriveKey(password)
-        val cipher = Cipher.getInstance(ALGORITHM)
-        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_LENGTH_BIT, iv))
-        return cipher.doFinal(cipherBytes)
+        return try {
+            val key = deriveKey(password, ITERATIONS)
+            val cipher = Cipher.getInstance(ALGORITHM)
+            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_LENGTH_BIT, iv))
+            cipher.doFinal(cipherBytes)
+        } catch (e: Exception) {
+            // Silent legacy fallback for backwards compatibility with legacy file attachments
+            try {
+                val legacyKey = deriveKey(password, 1000)
+                val cipher = Cipher.getInstance(ALGORITHM)
+                cipher.init(Cipher.DECRYPT_MODE, legacyKey, GCMParameterSpec(TAG_LENGTH_BIT, iv))
+                cipher.doFinal(cipherBytes)
+            } catch (ex: Exception) {
+                throw ex
+            }
+        }
     }
 
     // High level file encryption: returns iv prepended to ciphertext

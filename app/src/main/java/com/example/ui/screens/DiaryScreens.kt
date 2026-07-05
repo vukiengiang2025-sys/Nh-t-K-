@@ -322,8 +322,8 @@ fun PasswordLockView(viewModel: DiaryViewModel, onUnlocked: () -> Unit) {
             confirmButton = {
                 Button(
                     onClick = {
-                        if (newPasswordInput.length < 4) {
-                            resetError = "⚠️ Mật khẩu tối thiểu từ 4 ký tự số!"
+                        if (newPasswordInput.length < 8) {
+                            resetError = "⚠️ Mật khẩu tối thiểu từ 8 ký tự!"
                             return@Button
                         }
                         if (newPasswordInput != confirmNewPasswordInput) {
@@ -503,6 +503,50 @@ fun PasswordLockView(viewModel: DiaryViewModel, onUnlocked: () -> Unit) {
 
         // Setup Mode: Additional registration fields for confirmation & decoy
         if (!viewModel.isPasswordSet) {
+            // Password Strength Indicator Component
+            if (passwordInput.isNotEmpty()) {
+                val strengthInfo = remember(passwordInput) {
+                    if (passwordInput.length < 6) {
+                        Triple("Yếu 🔴", 0.25f, Color.Red)
+                    } else if (passwordInput.length < 8) {
+                        Triple("Yếu (Yêu cầu tối thiểu 8 ký tự để bảo mật thực) 🟡", 0.5f, Color(0xFFFFC107))
+                    } else {
+                        val hasLetters = passwordInput.any { it.isLetter() }
+                        val hasDigits = passwordInput.any { it.isDigit() }
+                        val hasSpecial = passwordInput.any { !it.isLetterOrDigit() }
+                        if (hasLetters && hasDigits && hasSpecial) {
+                            Triple("Cực kỳ bảo mật (AES Key siêu mạnh) 💎", 1f, Color(0xFF00E5FF))
+                        } else if (hasLetters && hasDigits) {
+                            Triple("Mạnh 🟢", 0.9f, Color(0xFF4CAF50))
+                        } else {
+                            Triple("Tốt (Đạt chuẩn số bảo mật) 🟢", 0.75f, Color.Green)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Độ mã hóa:", color = SilentGray, fontSize = 11.sp)
+                        Text(strengthInfo.first, color = strengthInfo.third, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { strengthInfo.second },
+                        color = strengthInfo.third,
+                        trackColor = Color.DarkGray,
+                        modifier = Modifier.fillMaxWidth().height(4.dp)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = confirmPasswordInput,
@@ -703,7 +747,7 @@ fun JournalDashboardView(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (newPasswordInput.length >= 4) {
+                        if (newPasswordInput.length >= 8) {
                             viewModel.resetPasswordViaRecoverySession(newPasswordInput)
                             showResetPasswordDialog = false
                             newPasswordInput = ""
@@ -833,6 +877,76 @@ fun JournalDashboardView(
                         ),
                         border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = Color.Transparent)
                     )
+                }
+            }
+
+            // AI Psychological Mood Counseling & Index Card
+            var showAiReport by remember { mutableStateOf(false) }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCardBg.copy(alpha = 0.7f)),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.25f))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { showAiReport = !showAiReport },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Psychology, contentDescription = "AI Mind Care", tint = NeonCyan, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("TRỊ LIỆU TÂM LÝ & TINH THẦN AI GEMINI", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Icon(
+                            imageVector = if (showAiReport) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = "Expand Therapy Counsel Report",
+                            tint = SilentGray
+                        )
+                    }
+                    if (showAiReport) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (viewModel.aiMoodAnalysisResult.isEmpty()) {
+                            Text(
+                                "AI Gemini sẽ đọc các trang ký ức gần đây nhất của bạn và lập báo cáo lâm sàng chuẩn y, hỗ trợ chữa lành, cải thiện trầm cảm hay căng thẳng và định thần tư duy tích cực.",
+                                color = SilentGray,
+                                fontSize = 11.sp,
+                                lineHeight = 16.sp
+                            )
+                        } else {
+                            Text(
+                                text = viewModel.aiMoodAnalysisResult,
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp,
+                                modifier = Modifier
+                                    .background(Color.Black.copy(alpha = 0.3f), shape = RoundedCornerShape(8.dp))
+                                    .padding(10.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            if (viewModel.aiLoading) {
+                                CircularProgressIndicator(color = NeonCyan, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Button(
+                                    onClick = { viewModel.askDiaryMoodAnalysis() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.Psychology, contentDescription = "Run therapy session", tint = DarkBackground, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Phân Tích Cảm Xúc & Trị Liệu", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1146,7 +1260,63 @@ fun AddEditJournalView(viewModel: DiaryViewModel, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // AI features have been removed per user request
+            // AI Topic Recommendation Box
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCardBg.copy(alpha = 0.6f)),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.2f))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Cloud, contentDescription = "AI Assistant", tint = GoldAccent, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("TRỢ LÝ CHỦ ĐỀ AI GEMINI", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        if (viewModel.aiLoading) {
+                            CircularProgressIndicator(color = GoldAccent, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            TextButton(
+                                onClick = { viewModel.askAiPrompt() },
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.height(24.dp)
+                            ) {
+                                Text("Đổi ý tưởng ✨", color = NeonCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = viewModel.aiSuggestedPrompt,
+                        color = SilentGray,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                    if (viewModel.aiSuggestedPrompt != "Nhấn 'Thực hiện gợi ý' để nhận chủ đề truyền động lực. ✨" && !viewModel.aiLoading) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        TextButton(
+                            onClick = { 
+                                viewModel.formContent = if (viewModel.formContent.isEmpty()) {
+                                    "Chủ đề khơi nguồn: " + viewModel.aiSuggestedPrompt + "\n\n"
+                                } else {
+                                    viewModel.formContent + "\n\n(Viết về chủ đề: " + viewModel.aiSuggestedPrompt + ")\n"
+                                }
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.height(24.dp)
+                        ) {
+                            Text("Sử dụng chủ đề này làm tự sự ✍️", color = GoldAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
 
             // Section 2: Editor Text Fields
             OutlinedTextField(
